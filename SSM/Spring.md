@@ -17,6 +17,8 @@
   - [Set方法提供](#set方法提供)
   - [复杂数据类型注入](#复杂数据类型注入)
 - [AOP](#aop)
+  - [相关术语](#相关术语)
+  - [Spring中Aop配置及实现](#spring中aop配置及实现)
 - [纯注解配置下的Spring](#纯注解配置下的spring)
   - [Spring整合Junit测试](#spring整合junit测试)
 
@@ -421,18 +423,54 @@ constructor-arg标签属性：
 ```
 
 切入点表达式写法
-1. 访问修饰符可以省略
-2. 返回值可以使用通配符，表示任意返回值
-3. 包名可以使用通配符 *
-   1. 几级包，就需要几个*： ``*.*.*``
-   2. .. 表示当前包及其子包
-4. 类名、方法名可以使用 * 通配
-5. 参数列表
-   1. 基本数据类型可以直接写名称
-   2. 引用类型写 *包名.类名的方式*
-   3. 可以使用通配符 \*，但是必须要有参数
-   4. 使用.. 有无参数都可以匹配，有参数匹配任意类型
-6. 全通配符写法：``* *..*.*(..)``
+  1. 访问修饰符可以省略
+  2. 返回值可以使用通配符，表示任意返回值
+  3. 包名可以使用通配符 *
+      * 几级包，就需要几个*： ``*.*.*``
+      * .. 表示当前包及其子包
+      * 类名、方法名可以使用 * 通配
+  5. 参数列表
+      * 基本数据类型可以直接写名称
+      * 引用类型写 *包名.类名的方式*
+      * 可以使用通配符 \*，但是必须要有参数
+      * 使用.. 有无参数都可以匹配，有参数匹配任意类型
+  6. 全通配符写法：``* *..*.*(..)``
+
+3. 几种通知类型
+
+```xml
+    <aop:config>
+        <aop:pointcut id="savePointCut" expression="execution(* org.example.service.AccountServiceImpl.saveAccount())"/>
+
+        <!--   配置切面     -->
+        <aop:aspect ref="logger">
+            <aop:before method="before" pointcut-ref="savePointCut" />
+
+            <aop:after method="after" pointcut-ref="savePointCut" />
+
+            <aop:around method="around" pointcut-ref="savePointCut" />
+        </aop:aspect>
+    </aop:config>
+```
+4. 环绕通知方法
+```Java
+    public void around(ProceedingJoinPoint joinPoint) {
+        System.out.println("环绕增强====>");
+        try {
+            System.out.println("环绕增强 前置通知........");
+            joinPoint.proceed();
+            System.out.println("环绕增强 后置通知........");
+
+        } catch (Throwable throwable) {
+            System.out.println("环绕增强 异常通知: " + throwable);
+        } finally {
+            System.out.println("环绕增强 最终通知");
+            System.out.println("<=====环绕增强");
+        }
+    }
+```
+5. 运行结果
+
 
 
 # 纯注解配置下的Spring
