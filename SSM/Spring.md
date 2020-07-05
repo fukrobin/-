@@ -617,11 +617,62 @@ public void testJdbc() {
 
 * 省略其他...
 
-
-
-
-
 ## 基于XML的事务管理
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xsi:schemaLocation="
+        http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/tx
+        http://www.springframework.org/schema/tx/spring-tx.xsd
+        http://www.springframework.org/schema/aop
+        http://www.springframework.org/schema/aop/spring-aop.xsd">
+
+    <!--  配置Spring事务管理器  -->
+    <bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="datasource"/>
+    </bean>
+    <!--  配置事务的通知  -->
+    <tx:advice id="txAdvice" transaction-manager="transactionManager">
+        <tx:attributes>
+            <!-- 所有更新方法 -->
+            <tx:method name="*" propagation="REQUIRED" read-only="false"/>
+
+            <!-- 所有查询方法  -->
+            <tx:method name="find*" propagation="SUPPORTS" read-only="true"/>
+            <tx:method name="query*" propagation="SUPPORTS" read-only="true"/>
+        </tx:attributes>
+    </tx:advice>
+
+    <aop:config>
+        <aop:pointcut id="pointCut1" expression="execution(* org.example.service.AccountServiceImpl.*(..))"/>
+        <!-- 建立切入点表达式和事务通知的对应关系 -->
+        <aop:advisor advice-ref="txAdvice" pointcut-ref="pointCut1"/>
+    </aop:config>
+</beans>
+```
+
+
+
+## 基础注解的事务管理
+
+
+
+纯注解配置下的事务管理除了配置事务传播行为麻烦一点以外，都还挺简单的。大概像这样：
+
+```java
+@Transactional(rollbackFor = Exception.class)
+public void testTransaction() {
+    accountService.updateAccount1();
+
+    accountService2.updateAccount2();
+}
+```
 
 # 纯注解配置下的Spring
 

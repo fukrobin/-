@@ -145,7 +145,7 @@ void addUser(User user);
 
 > object graphic navigation language  对象图导航语言
 
-简单来说就是可以直接使用  ``user.username``获取``username``属性的值，而无需调用get方法。
+简单来说就是可以直接使用  ``user.username``获取``username``属性的值，而无需调用get方法，但必须使用规范的属性命名和规范的getter命名。
 
 ```java
 @Select("select * from user where username like #{user.username}")
