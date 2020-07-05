@@ -470,8 +470,158 @@ constructor-arg标签属性：
     }
 ```
 5. 运行结果
+正常运行结果：普通通知->环绕通知->普通通知
+![normalAdvice](image/normalAdvice.png)
+
+## Spring中AOP通知顺序BUG
+
+ 实际上，我目前并不确定这是否是一个BUG，因为我才开始学 Spring。
+
+问题是这样的，前一张图是正常情况下的运行顺序，在某些情况下，会发生 **最终通知==>后置通知** 的顺序，例如：
+
+![errorAdviceOrder](image/errorAdviceOrder.png)
+
+经过我都百度和测试，我发现这和XML文件的aop的通知配置顺序有关系，下面是正常通知顺序的配置：
+```xml
+    <aop:config>
+        <aop:pointcut id="savePointCut" expression="execution(* org.example.service.AccountServiceImpl.saveAccount())"/>
+        <!--   配置切面     -->
+        <aop:aspect ref="logger">
+            <aop:before method="before" pointcut-ref="savePointCut" />
+            <aop:around method="around" pointcut-ref="savePointCut" />
+            <aop:after-returning method="after" pointcut-ref="savePointCut" />
+            <aop:after-throwing method="catchException" pointcut-ref="savePointCut" />
+            <aop:after method="finallyAdvice" pointcut-ref="savePointCut" />
+        </aop:aspect>
+    </aop:config>
+```
+如果打乱此XML配置顺序，会出现好几种无法预料的通知顺序，目前无法解释。
+
+## Spring AOP的注解配置
+
+1. 添加扫描路径
+
+2. 开启aop
+
+   ```xml
+   <aop:aspectj-autoproxy />
+   ```
+
+3. 配置切入点表达式
+
+   ```java
+   @Pointcut("execution(* org.example.service.AccountServiceImpl.saveAccount())")
+   private void exeSaveAccount() {
+   
+   }
+   ```
+
+4. 配置通知、引用表达式：
+
+   ```java
+   @Before("exeSaveAccount()")
+   public void before() {
+       System.out.println("Logger.before");
+   }
+   
+   @AfterReturning("exeSaveAccount()")
+   public void after() {
+       System.out.println("Logger.after");
+   }
+   ```
+
+   注解中的值是切入点表达式注解配置所在的方法名(必须带括号)
+
+# JdbcTemplate
+
+## 简单应用
+
+```java
+@Test
+public void testJdbc() {
+    // Spring的内置数据源
+    DriverManagerDataSource driverManagerDataSource = new DriverManagerDataSource();
+
+    driverManagerDataSource.setDriverClassName("com.mysql.cj.jdbc.Driver");
+    driverManagerDataSource.setUrl("jdbc:mysql://localhost:3306/test_db");
+    driverManagerDataSource.setUsername("root");
+    driverManagerDataSource.setPassword("123");
+
+    JdbcTemplate templateTest = new JdbcTemplate(driverManagerDataSource);
+
+    templateTest.update("insert into account(id, uid, money) values(3, 41, 1000000) ");
+}
+```
 
 
+
+# Spring的事务管理
+
+## 事务传播行为
+
+首先，Spring定义了七种事务传播行为，它们分别是：
+
+| 事务传播行为类型          | 说明                                                         |
+| ------------------------- | ------------------------------------------------------------ |
+| PROPAGATION_REQUIRED      | 如果当前没有事务，就新建一个事务，如果已经存在一个事务中，加入到这个事务中。这是最常见的选择。 |
+| PROPAGATION_SUPPORTS      | 支持当前事务，如果当前没有事务，就以非事务方式执行。         |
+| PROPAGATION_MANDATORY     | 使用当前的事务，如果当前没有事务，就抛出异常。               |
+| PROPAGATION_REQUIRES_NEW  | 新建事务，如果当前存在事务，把当前事务挂起。                 |
+| PROPAGATION_NOT_SUPPORTED | 以非事务方式执行操作，如果当前存在事务，就把当前事务挂起。   |
+| PROPAGATION_NEVER         | 以非事务方式执行，如果当前存在事务，则抛出异常。             |
+| PROPAGATION_NESTED        | 如果当前存在事务，则在嵌套事务内执行。如果当前没有事务，则执行与PROPAGATION_REQUIRED类似的操作。 |
+
+## 
+
+事务传播行为用来描述由某一个事务传播行为修饰的方法被嵌套进另一个方法的时事务如何传播。
+
+用伪代码说明：
+
+```java
+ public void methodA(){
+    methodB();
+    //doSomething
+ }
+
+ @Transaction(Propagation=XXX)
+ public void methodB(){
+    //doSomething
+ }
+```
+
+代码中methodA()方法嵌套调用了methodB()方法，methodB()的事务传播行为由@Transaction(Propagation=XXX)设置决定。这里需要注意的是methodA()并没有开启事务，某一个事务传播行为修饰的方法并不是必须要在开启事务的外围方法中调用。
+
+[具体参考此博客](https://segmentfault.com/a/1190000013341344)，详细的演示并说明了每种行为。
+
+* 事务传播行为只有在不同的``JdbcTemplate``,之间有效。因为外围测试方法使用同一个JdbcTemplete提交会导致测试没有意义。这也代表需要使用不同的业务层类进行模拟测试
+
+* REQUIRED：内部事务或外部事务异常都会导致回滚（捕捉异常也会回滚）
+
+* NESTED：基本同``REQUIRED``相同，但内部事务异常可捕捉（单独回滚）
+
+* REQUIRES_NEW：永远不会互相影响，内部外部、内部之间都不会互相影响
+
+* MANDATORY：外围方法无事务将抛出异常
+
+  ```java
+  IllegalTransactionStateException: No existing transaction found for transaction marked with propagation 'mandatory'
+  ```
+
+  只回滚 标记为 mandatory 事务的方法。
+
+* NEVER：外围方法存在事务时抛出异常：
+
+  ```text
+  IllegalTransactionStateException: Existing transaction found for transaction marked with propagation 'never'
+  ```
+
+* 省略其他...
+
+
+
+
+
+## 基于XML的事务管理
 
 # 纯注解配置下的Spring
 
