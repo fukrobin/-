@@ -1,28 +1,5 @@
-<!-- TOC -->
+[toc]
 
-- [Spring概述](#spring概述)
-  - [Spring概述](#spring概述-1)
-    - [Spring是什么](#spring是什么)
-    - [Spring 的发展历程](#spring-的发展历程)
-- [IOC](#ioc)
-  - [Spring中的IOC](#spring中的ioc)
-  - [基于注解的IoC](#基于注解的ioc)
-- [Bean](#bean)
-  - [spring中的JavaBean](#spring中的javabean)
-    - [创建JavaBean的三种方式](#创建javabean的三种方式)
-    - [Spring中的Bean的作用范围](#spring中的bean的作用范围)
-    - [Spring中的Bean的生命周期](#spring中的bean的生命周期)
-- [依赖注入](#依赖注入)
-  - [构造函数注入](#构造函数注入)
-  - [Set方法提供](#set方法提供)
-  - [复杂数据类型注入](#复杂数据类型注入)
-- [AOP](#aop)
-  - [相关术语](#相关术语)
-  - [Spring中Aop配置及实现](#spring中aop配置及实现)
-- [纯注解配置下的Spring](#纯注解配置下的spring)
-  - [Spring整合Junit测试](#spring整合junit测试)
-
-<!-- /TOC -->
 # Spring概述
 
 ## Spring概述

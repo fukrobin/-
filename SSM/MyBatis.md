@@ -1,13 +1,4 @@
-<!-- TOC -->
-
-- [框架](#框架)
-  - [什么是框架Markdown Writer: Create Default keymaps](#什么是框架markdown-writer-create-default-keymaps)
-  - [MyBatis](#mybatis)
-    - [流程](#流程)
-  - [Mybatis的CURD](#mybatis的curd)
-- [Resources源码分析](#resources源码分析)
-
-<!-- /TOC -->
+[toc]
 
 # 框架
 

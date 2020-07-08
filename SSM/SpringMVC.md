@@ -1,13 +1,4 @@
-<!-- TOC -->
-
-- [Spring MVC 简介](#spring-mvc-简介)
-- [Spring MVC 入门程序](#spring-mvc-入门程序)
-  - [执行过程](#执行过程)
-  - [RequestMapping注解](#requestmapping注解)
-- [请求参数的绑定](#请求参数的绑定)
-  - [请求参数乱码](#请求参数乱码)
-
-<!-- /TOC -->
+[toc]
 
 # Spring MVC 简介
 
@@ -27,7 +18,7 @@ SpringMVC 已经成为目前最主流的 MVC 框架之一，并且随着 Spring3
 
 1. 搭建 maven项目，选择原型:``webapps``
 
-2. 配置web.xml：配置spring mvc核心控制器（servlet）的映射：
+2. 配置web.xml：配置spring mvc前端控制器（servlet）的映射：
 
    ```xml
    <!-- spring核心控制器配置 -->
@@ -425,6 +416,373 @@ public String testPut(Model model){
 ```
 
 ![sessionAttrDemo.](image/sessionAttrDemo.png)
+
+* Model.setAttribute()方法实际上是将数据存储在``request``域之中的
+
+* @SessionAttributes注解则会让对应属性名的属性同时存储在 ``session``域之中
+
+* @SessionAttribute()注解用于参数之上，可以用于从session域之中取对应属性的值并赋值给（控制器）方法参数
+
+  ```java
+  @RequestMapping("/sessionAttr")
+  /** Spring MVC会从session中查找名叫 sessionAttr 的属性，并赋值给形参，也可以通过注解属性指定读取的属性 */
+  public String testSessionAttribute(@SessionAttribute int sessionAttr) {
+      System.out.println("sessionAttr = " + sessionAttr);
+      return "success";
+  }
+  ```
+
+# 响应JSON数据
+
+因为我们在<font color="red">webxml</font>中配置了Spring MVC的核心控制器，拦截了一切请求，这会导致我们的静态资源也会被拦截，例如js、css、image等静态资源，为了避免被拦截，需要在SpringMVC配置文件中指定不被拦截的资源：
+
+```xml
+<mvc:resources location="/js/"  mapping="/js/**" />
+```
+
+
+
+## Bean与Json数据互转
+
+``Springmvc`` 默认用 <font color="red">MappingJacksonHttpMessageConverter </font>对 json 数据进行转换，需要加入``jackson ``的包。
+
+Maven坐标：
+
+```xml
+<dependency>
+    <groupId>com.fasterxml.jackson.core</groupId>
+    <artifactId>jackson-databind</artifactId>
+    <version>2.11.1</version>
+</dependency>
+
+<dependency>
+    <groupId>com.fasterxml.jackson.core</groupId>
+    <artifactId>jackson-core</artifactId>
+    <version>2.11.1</version>
+</dependency>
+
+<dependency>
+    <groupId>com.fasterxml.jackson.core</groupId>
+    <artifactId>jackson-annotations</artifactId>
+    <version>2.11.1</version>
+</dependency>
+```
+
+
+
+使用方法：通过AJAX传递的JSON数据会自动地被转换为Bean对象。
+
+```java
+@RequestMapping("/ajax")
+public @ResponseBody User testAjax(@RequestBody User user) {
+    System.out.println("UserController.testAjax");
+    System.out.println(user);
+    
+    user.setUsername("zhang");
+
+    return user;
+}
+```
+
+* **@RequestBody**可以自动把JSON数据转为Java Bean
+* **@ResponseBody**可以把Java Bean转为Json数据
+
+
+
+# 文件上传
+
+1. form表单的enctype取值必须是：``multipart/form-data``，默认值为``application/x-www-form-urlencoded`` 
+
+2. method必须是post（get方式数据会在地址栏显示，且有大小限制，4k）
+
+3. 提供一个文件选择域
+
+   ```html
+   <form action="uploadImage" method="post" enctype="multipart/form-data">
+       <label>选择上传文件<input type="file" /></label>
+   </form>
+   ```
+
+
+## 原理分析
+
+当 form 表单的 enctype 取值不是默认值后，request.getParameter()将失效。 enctype="application/x-www-form-urlencoded"时，form 表单的正文内容是：key=value&key=value&key=value
+
+当 form 表单的 enctype 取值为 Mutilpart/form-data 时，请求正文内容就变成：
+
+每一部分都是 MIME 类型描述的正文
+
+\-----------------------------7de1a433602ac  **分界符**
+
+Content-Disposition: form-data; name="userName" **协议头**
+
+aaa **协议的正文**
+
+\-----------------------------7de1a433602ac
+
+Content-Disposition: form-data; name="file"; filename="C:\Users\zhy\Desktop\fileupload_demofile\b.txt"
+
+Content-Type: text/plain **协议的类型（MIME 类型）**
+
+bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+
+\-----------------------------7de1a433602ac--
+
+
+
+借助三方组件实现文件上传
+
+* Commons-fileupload 
+* commons-io。
+
+commons-io 不属于文件上传组件的开发 jar 文件，但Commons-fileupload 组件从 1.1 版本开始，它工作时需要 commons-io 包的支持。
+
+
+
+## Spring MVC传统文件上传方式
+
+> 传统方式的文件上传，指的是我们上传的文件和访问的应用存在于同一台服务器上。并且上传完成之后，浏览器可能跳转。
+
+1. 编写jsp页面
+
+   ```html
+   <form action="uploadImage" method="post" enctype="multipart/form-data">
+       <label>选择上传文件<input type="file" name="image" /></label><br>
+       <input type="submit" value="上传">
+   </form>
+   ```
+
+   * file输入框必须要有name属性，否则无法解析数据
+
+2. 编写控制器java代码
+
+   ```java
+       @RequestMapping("/uploadImage")
+       public String uploadImage(HttpServletRequest request) throws Exception {
+           String path = request.getSession().getServletContext().getRealPath("/upload/");
+           File file = new File(path);
+           if (!file.exists()) {
+               file.mkdirs();
+           }
+   
+           DiskFileItemFactory fileItemFactory = new DiskFileItemFactory();
+           ServletFileUpload fileUpload = new ServletFileUpload(fileItemFactory);
+           List<FileItem> fileItems = fileUpload.parseRequest(request);
+           for (FileItem fileItem : fileItems) {
+               if (fileItem.isFormField()) {
+                   System.out.println(fileItem.getName());
+               } else {
+                   String name = fileItem.getName();
+                   String uuid = UUID.randomUUID().toString().replace("-", "");
+                   name = uuid + "_" + name;
+                   fileItem.write(new File(path, name));
+                   // 删除临时文件
+                   fileItem.delete();
+               }
+           }
+   
+           return "success";
+       }
+   ```
+
+   * 项目打包路径在``target\SpringMVC\upload\.....``
+
+## SpringMVC跨服务器的文件上传方式
+
+在实际开发中，我们会有很多处理不同功能的服务器。例如：
+
+* 应用服务器：负责部署我们的应用
+
+* 数据库服务器：运行我们的数据库
+
+* 缓存和消息服务器：负责处理大并发访问的缓存和消息
+
+* 文件服务器：负责存储用户上传文件的服务器。
+
+**(注意：此处说的不是服务器集群）**
+
+**分服务器处理的目的是让服务器各司其职，从而提高我们项目的运行效率。**
+
+
+
+步骤：
+
+1. 配置文件解析器
+
+   ```xml
+   <!--  配置文件解析器 -->
+   <bean id="multipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+       <property name="maxUploadSize" value="10485760" />
+   </bean>
+   ```
+
+2. 导入biyaojar包：jersey（由sun公司提供）
+
+   ```xml
+   <dependency>
+       <groupId>com.sun.jersey</groupId>
+       <artifactId>jersey-core</artifactId>
+       <version>1.18.1</version>
+   </dependency>
+   
+   <dependency>
+       <groupId>com.sun.jersey</groupId>
+       <artifactId>jersey-client</artifactId>
+       <version>1.18.1</version>
+   </dependency>
+   ```
+   
+3. 修改处理文件上传的java代码
+
+   ```java
+   @RequestMapping("/uploadImage")
+   public String uploadImage(MultipartFile upload) throws Exception {
+           String filename = upload.getOriginalFilename();
+           String uuid = UUID.randomUUID().toString().replace("-", "");
+           filename = uuid + "_" + filename;
+   
+           // 创建 sun 公司提供的 jersey 包中的 Client 对象
+           Client client = Client.create();
+           // 指定上传文件的地址，该地址是 web 路径
+           WebResource webResource = client.resource(URL + filename);
+           String result = webResource.put(String.class, upload.getBytes());
+           System.out.println(result);
+   
+           return "success";
+       return "success";
+   }
+   ```
+
+* 文件服务器（Tomcat）需要配置web.xml，需要加上启动参数``readonly``，设置为false，否则无法写入文件
+
+  ![image-20200708203007781](image/fileServerSet.png)
+
+* 需要手动在服务器建立 uploads文件夹
+
+* 方法中 ``MultipartFile``参数名称必须和form表单中上传文件的输入框 name属性值一样
+
+* 文件解析器 bean 的id值必须是``multipartResolver``
+
+* Maven中的打包方式会影响 ``resource``资源会不会加载到classpath，改为jar
+
+# Spring MVC 异常处理
+
+如果不做特殊处理，Mybatis、Spring、Spring MVC对于异常的默认处理方式都是向上抛出，最终异常会被抛出到前端页面上。
+
+
+
+在Spring MVC中可以配置异常处理器组件，负责处理异常并返回错误页面。
+
+1. 自定义异常类
+
+2. 定义异常处理器，需要继承``HandlerExceptionResvloer``
+
+   ```java
+   public class SystemExceptionResolver implements HandlerExceptionResolver {
+   
+       /** 处理异常 */
+       @Override
+       public ModelAndView resolveException(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, Object o, Exception e) {
+           SystemException systemException;
+           if (e instanceof SystemException) {
+               systemException = (SystemException) e;
+           } else {
+               systemException = new SystemException("系统维护");
+           }
+   
+           ModelAndView view = new ModelAndView("error");
+           view.addObject("errorMsg", systemException);
+   
+           return view;
+       }
+   }
+   ```
+
+3. 配置异常处理器：在配置文件中添加bean
+
+   ```xml
+   <bean id="systemExceptionResolver" class="pers.crobin.exception.SystemExceptionResolver" />
+   ```
+
+4. 在代码中抛出对应异常
+
+   ```java
+   @RequestMapping("/testException")
+   public String testException() throws SystemException {
+       System.out.println("UserController.testException");
+       try {
+           throw new NullPointerException("模拟异常");
+       } catch (Exception e) {
+           throw new SystemException();
+       }
+   }
+   ```
+
+5. 运行结果
+
+   ![异常处理器运行示例](E:\Markdown\学习记录\SSM\image\exceptionHandler.png)
+
+# Spring MVC 拦截器
+
+Spring MVC 的处理器拦截器类似于 Servlet 开发中的过滤器 Filter，用于对处理器（Controller）进行预处理和后处理。
+
+谈到拦截器，还要向大家提一个词——**拦截器链（Interceptor Chain）**。拦截器链就是将拦截器按一定的顺序联结成一条链。在访问被拦截的方法或字段时，拦截器链中的拦截器就会按其之前定义的顺序被调用。
+
+它与Servlet中过滤器的区别：
+
+**过滤器**是 servlet 规范中的一部分，任何 java web 工程都可以使用。
+
+**拦截器**是 SpringMVC 框架自己的，只有使用了 SpringMVC 框架的工程才能用。
+
+**过滤器**在 url-pattern 中配置了**/***之后，可以对所有要访问的资源拦截。
+
+**拦截器**只会拦截访问的控制器方法，如果访问的是 jsp，html,css,image 或者 js 是不会进行拦截的。
+
+它也是**AOP 思想的具体应用**。
+
+我们要想自定义拦截器， 要求必须实现：**HandlerInterceptor** **接口。**
+
+
+
+步骤：
+
+1. 编写自己的拦截器
+
+   ```java
+   public class MyInterceptor implements HandlerInterceptor {
+   
+       @Override
+       public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+           System.out.println("MyInterceptor.preHandle");
+   
+           return true;
+       }
+   }
+   ```
+
+   * 返回true方向；返回false拦截
+
+2. 配置拦截器
+
+   ```xml
+   <!-- 配置拦截器 -->
+   <mvc:interceptors>
+       <mvc:interceptor>
+           <mvc:mapping path="/user/*"/>
+           <bean id="myInterceptor" class="pers.robin.interceptor.MyInterceptor" />
+       </mvc:interceptor>
+   </mvc:interceptors>
+   ```
+
+
+
+* preHandle()：controller方法执行前执行
+* postHandle()：controller方法执行后执行
+* afterCompletion()：jsp页面执行后执行
+
+
+
+
 
 # 自定义类型转换器
 
