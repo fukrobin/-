@@ -1,4 +1,31 @@
-# Vue学习
+<!-- TOC -->
+
+- [Vue](#vue)
+  - [数据与属性](#数据与属性)
+  - [生命周期钩子](#生命周期钩子)
+- [模板语法](#模板语法)
+  - [插值](#插值)
+  - [指令](#指令)
+- [计算属性和侦听器](#计算属性和侦听器)
+  - [计算属性](#计算属性)
+  - [侦听器](#侦听器)
+- [Class与Style绑定](#class与style绑定)
+  - [绑定HTML Class](#绑定html-class)
+- [组件基础](#组件基础)
+  - [通过prop向子组件传递数据](#通过prop向子组件传递数据)
+
+<!-- /TOC -->
+
+# Vue
+
+Vue是一个渐进式的框架
+* 可以作为应用的一部分嵌入，意思是你可以逐渐的重构原来未使用Vue的项目
+
+* 解耦数据和视图
+* 可复用的组件
+* 前端路由技术
+* 状态管理
+* 虚拟DOM
 
 ## 数据与属性
 * 在Vue实例的data属性中添加对象，其中的属性可以与DOM节点双向绑定
@@ -148,3 +175,110 @@ computed: {
 // ...
 ```
 * 此后，更新 `fullname` 值时会调用 `setter` 方法，更新 `firstname` 和 `lastname`
+
+## 侦听器
+
+实例:
+```html
+<div id="watch-example">
+  <p>
+    Ask a yes/no question:
+    <input v-model="question">
+  </p>
+  <p>{{ answer }}</p>
+</div>
+```
+```js
+let watchExample = new Vue({
+        el: '#watch-example',
+        data: {
+            question: '',
+            answer: `I cannot give you an answer until you ask a question!`
+        },
+        watch: {
+            question: function (newValue, oldValue) {
+                this.answer = 'Waiting for you to stop typing...';
+                this.debouncedGetAnswer();
+            }
+        },
+        created: function () {
+            this.debouncedGetAnswer = _.debounce(this.getAnswer, 500)
+        },
+        methods: {
+            getAnswer: function () {
+                if (this.question.indexOf('?') === -1) {
+                    this.answer = 'Questions usually contain a question mark. ;-)';
+                    return;
+                }
+                this.answer = 'Thinking...';
+                let vm = this;
+                $.ajax({
+                    url: 'https://yesno.wtf/api',
+                    success: function (result) {
+                        console.log(result);
+                        vm.answer = result.answer;
+                    },
+                    error: function (error) {
+                        vm.answer = 'Error! Could not reach the API. ' + error;
+                    }
+                })
+            }
+        }
+    });
+```
+* `_.debounce(func, [wait=0], [options={}])`
+  * 用于防止抖动，只有在最后一次访问 `func` 后指定延时才能真正调用
+  * 区别于`_.throttle(func, [wait=0], [options={}])`，此函数的意义时再指定时间内只能调用一次，主要区别在于此函数是立即触发
+
+# Class与Style绑定
+
+## 绑定HTML Class
+
+1. `<div v-bind:class="{ active: isActive }"></div>`
+   * class active的存在与否与 `isActive`相关
+   * 同时使用多个：`v-bind:class="{ active: isActive, 'text-danger': hasError }"`
+2. 值可以是对象值
+3. 值可以是 `computed` 属性中的函数
+
+# 组件基础
+
+1. 组件是一个可复用的 `Vue` 实例，因此可以接收 `new Vue` 相同的选项，除 el
+2. 作为 **自定义元素** 在通过 `new Vue` 创建的根实例中使用。
+
+**Demo**
+1. 定义组件
+```js
+// 定义一个名为 button-counter 的新组件
+Vue.component('button-counter', {
+  data: function () {
+    return {
+      count: 0
+    }
+  },
+  template: '<button v-on:click="count++">You clicked me {{ count }} times.</button>'
+})
+```
+
+2. 使用
+```html
+<div id="components-demo">
+  <button-counter></button-counter>
+</div>
+<script>
+new Vue({ el: '#components-demo' })
+</script>
+```
+
+**特点**
+1. 任意次数复用（直接看成新的HTML中的标签）
+2. `data` 必须是一个函数 `function`，因此每个实例都可以维护一份被返回对象的独立的拷贝
+
+## 通过prop向子组件传递数据
+
+1. title
+```js
+Vue.component('blog-post', {
+  props: ['title'],
+  template: '<h3>{{ title }}</h3>'
+})
+```
