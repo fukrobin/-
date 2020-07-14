@@ -1,4 +1,28 @@
-[toc]
+- [Spring MVC 简介](#spring-mvc-简介)
+- [Spring MVC 入门程序](#spring-mvc-入门程序)
+  - [执行过程](#执行过程)
+  - [RequestMapping注解](#requestmapping注解)
+- [请求参数的绑定](#请求参数的绑定)
+  - [请求参数乱码](#请求参数乱码)
+  - [获取原生ServletAPI](#获取原生servletapi)
+- [常用注解](#常用注解)
+  - [@RequestParams](#requestparams)
+  - [@RequestBody](#requestbody)
+  - [@PathVaribale](#pathvaribale)
+  - [@RequestHeader](#requestheader)
+  - [@ CookieValue](#-cookievalue)
+  - [@ModelAttribute](#modelattribute)
+  - [@SessionAttribute](#sessionattribute)
+- [响应JSON数据](#响应json数据)
+  - [Bean与Json数据互转](#bean与json数据互转)
+- [文件上传](#文件上传)
+  - [原理分析](#原理分析)
+  - [Spring MVC传统文件上传方式](#spring-mvc传统文件上传方式)
+  - [SpringMVC跨服务器的文件上传方式](#springmvc跨服务器的文件上传方式)
+- [Spring MVC 异常处理](#spring-mvc-异常处理)
+- [Spring MVC 拦截器](#spring-mvc-拦截器)
+- [自定义类型转换器](#自定义类型转换器)
+- [SSM 整合](#ssm-整合)
 
 # Spring MVC 简介
 
@@ -830,6 +854,197 @@ public class StringToDateConverter implements Converter<String, Date> {
 3. java方法定义
 ```java
     public Date convert(String source) {
-      //...                                                                                                                                                                                                                                                                                                       
+      //...                                                                   
     }
 ```
+
+# SSM 整合
+
+SSM：分别对应三层架构
+表现层：Spring MVC
+业务层：Spring
+持久层：Mybatis
+
+* Spring整合Mybatis和Spring MVC
+* 保证每个框架能单独使用
+* 配置文件+注解的方式
+
+
+
+### 配置Spring MVC
+
+1. 配置Spring MVC环境
+
+   1. 在``web.xml``中配置前端控制器
+   2. 配置过滤器以解决中文乱码
+
+   ```xml
+   <filter>
+       <filter-name>characterEncodingFilter</filter-name>
+       <filter-class>org.springframework.web.filter.CharacterEncodingFilter</filter-class>
+       <init-param>
+           <param-name>encoding</param-name>
+           <param-value>UTF-8</param-value>
+       </init-param>
+   </filter>
+   
+   <filter-mapping>
+       <filter-name>characterEncodingFilter</filter-name>
+       <url-pattern>/*</url-pattern>
+   </filter-mapping>
+   
+   <servlet>
+       <servlet-name>dispatcherServlet</servlet-name>
+       <servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
+       <init-param>
+           <param-name>contextConfigLocation</param-name>
+           <param-value>classpath:springmvc.xml</param-value>
+       </init-param>
+       <load-on-startup>1</load-on-startup>
+   </servlet>
+   
+   <servlet-mapping>
+       <servlet-name>dispatcherServlet</servlet-name>
+       <url-pattern>/</url-pattern>
+   </servlet-mapping>
+   ```
+
+2. 创建Spring MVC的配置文件
+
+   ```xml
+   <?xml version="1.0" encoding="UTF-8"?>
+   <beans xmlns="http://www.springframework.org/schema/beans"
+          xmlns:mvc="http://www.springframework.org/schema/mvc"
+          xmlns:context="http://www.springframework.org/schema/context"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="
+           http://www.springframework.org/schema/beans
+           http://www.springframework.org/schema/beans/spring-beans.xsd
+           http://www.springframework.org/schema/mvc
+           http://www.springframework.org/schema/mvc/spring-mvc.xsd
+           http://www.springframework.org/schema/context
+           http://www.springframework.org/schema/context/spring-context.xsd">
+   
+       <context:component-scan base-package="pers.crobin">
+           <context:include-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
+       </context:component-scan>
+   
+       <!--  配置视图解析器对象  -->
+       <bean id="viewResolver" class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+           <property name="prefix" value="/WEB-INF/pages/"/>
+           <property name="suffix" value=".jsp"/>
+       </bean>
+   
+       <!--  过滤静态资源  -->
+       <mvc:resources mapping="/js/**" location="/js/"/>
+   
+       <!-- 开启spring mvc 注解支持 -->
+       <mvc:annotation-driven/>
+   </beans>
+   ```
+
+   * ``context:include-filter ``标签用于指定只扫描包含 ``@Controller``注解的类
+
+### 配置Spring
+
+1. 配置环境
+
+   ```xml
+   <?xml version="1.0" encoding="UTF-8"?>
+   <beans xmlns="http://www.springframework.org/schema/beans"
+          xmlns:context="http://www.springframework.org/schema/context"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://www.springframework.org/schema/beans
+           http://www.springframework.org/schema/beans/spring-beans.xsd
+           http://www.springframework.org/schema/context
+           http://www.springframework.org/schema/context/spring-context.xsd">
+   
+       <context:component-scan base-package="pers.crobin">
+           <context:exclude-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
+       </context:component-scan>
+   </beans>
+   ```
+
+2. 创建 Service类
+
+3. 书写相关注解
+
+### 配置Mybatis
+
+1. 配置Mybatis 环境
+2. 属性相关Dao类和注解
+
+
+
+### 以Spring为中心的整合
+
+
+
+**整合Spring MVC**
+
+1. Controller类中应该含有Service类的对象，可以使用依赖注入
+
+2. 因此需要让Spring在Spring MVC配置文件被加载之前加载配置文件
+
+3. 可以使用监听器监听ServletContext（生命周期同Tomcat）
+
+   ```xml
+   <!--  配置Spring的监听器,默认只加载 WEB-INF目录下的applicationContext.xml文件  -->
+   <listener>
+       <listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
+   </listener>
+   
+   <!--  设置配置文件的路径  -->
+   <context-param>
+   	<param-name>contextConfigLocation</param-name>
+   	<param-value>classpath:spring.xml</param-value>
+   </context-param>
+   ```
+
+4. 这之后就可以使用依赖注入在Controller中注入Service了
+
+
+
+**整合Mybatis**
+
+1. Service类中应该持有Dao类的对象
+2. 使用依赖注入
+3. 让Spring 管理Mybatis
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/context
+        http://www.springframework.org/schema/context/spring-context.xsd">
+
+    <context:component-scan base-package="pers.crobin">
+        <context:exclude-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
+    </context:component-scan>
+
+    <!--  spring整合mybatis  -->
+    <!--  配置连接池  -->
+    <bean id="basicDataSource" class="org.apache.commons.dbcp2.BasicDataSource">
+        <property name="driverClassName" value="com.mysql.cj.jdbc.Driver"/>
+        <property name="url" value="jdbc:mysql:///test_db"/>
+        <property name="username" value="root"/>
+        <property name="password" value="123"/>
+    </bean>
+
+    <!--  配置SqlSessionFactory工厂  -->
+    <bean id="sessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <property name="dataSource" ref="basicDataSource"/>
+    </bean>
+    <!--  配置IUserDao包  -->
+    <bean id="mapperScannerConfigurer" class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <property name="basePackage" value="pers.crobin.dao"/>
+    </bean>
+</beans>
+```
+
+* 视频教程使用的c3p0连接池，我使用的时候一直报错，找不到原因，故换为了``DBCP``
+
+4. 此后就可以正常使用依赖注入了

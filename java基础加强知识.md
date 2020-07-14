@@ -18,6 +18,11 @@
   - [规约](#规约)
   - [数值流](#数值流)
   - [构建流](#构建流)
+    - [由值构建](#由值构建)
+    - [由数组构建](#由数组构建)
+    - [由文件生成](#由文件生成)
+    - [由函数生成：构建无限流](#由函数生成构建无限流)
+- [用流收集数据](#用流收集数据)
 # 测试
 
 ## 黑盒测试
@@ -326,7 +331,63 @@ IntStream、LongStream
 
 ## 构建流
 
-1. 由值构建
-2. 由数组构建
-3. 由文件生成
-4. 由函数生成
+### 由值构建
+   ```java
+    Stream<String> stringStream = Stream.of("a", "b", "c", "d");
+   ```
+### 由数组构建
+   ```java
+    int[] numbers = {2, 3, 5, 7, 11, 13}; 
+    int sum = Arrays.stream(numbers).sum();
+   ```
+### 由文件生成
+   ```java
+    long uniqueWords = 0;
+    try (Stream<String> lines = Files.lines(
+            Paths.get("data.txt"), Charset.defaultCharset())) { uniqueWords =
+            lines
+                .flatMap(line -> Arrays.stream(line.split(" ")))
+                .distinct()
+                .count();
+    } catch (IOException e) {
+    
+    }
+  ```
+### 由函数生成：构建无限流
+* ``static <T> Stream<T>	generate(Supplier<T> s)``
+* ``static <T> Stream<T>	iterate(T seed, UnaryOperator<T> f)``
+  
+这两个方法产生的流会用给定的函数按需取值，使用时一般需要用limit限制
+```java
+Stream.iterate(new int[]{0, 1}, ints -> new int[]{ints[1], ints[0] + ints[1]})
+                .limit(20)
+                .forEach(ints -> System.out.println(ints[0] + "--" + ints[1]));
+// generate                
+Stream.generate(Math::random) 
+  .limit(5) 
+  .forEach(System.out::println);
+```
+
+# 用流收集数据
+
+收集器，即Collectors类下的静态方法，可以看作更为广义的规约操作（reduce）
+
+* maxBy
+* summingInt、summingDouble、summingLong
+* averagingInt
+* summarizingInt(ToIntFunction<? super T> mapper)：返回值``IntSummaryStatistics``类包含了count、max、min、avg等值
+* joining
+
+分组：
+
+* ``groupingBy(Function<? super T,? extends K> classifier)``
+  分组函数返回值作为 Map的键值
+* 分组的强大之处就在于它可以有效地组合
+* ``groupingBy(Function<? super T,? extends K> classifier, Collector<? super T,A,D> downstream)``
+  * 第二个参数可以接受一个 内嵌的groupingBy函数
+
+分区：
+分区是分组的特殊形式，分区接受一个谓词作为分区函数，分区函数返回一个布尔值，因此返回值Map的键是Boolean
+* ``static <T> Collector<T,?,Map<Boolean,List<T>>>	partitioningBy(Predicate<? super T> predicate)``
+* 分区的好处在于保留了分区函数返回true或false的两套流元素列表
+  
