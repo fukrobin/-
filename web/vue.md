@@ -11,8 +11,9 @@
   - [侦听器](#侦听器)
 - [Class与Style绑定](#class与style绑定)
   - [绑定HTML Class](#绑定html-class)
-- [组件基础](#组件基础)
+- [组件](#组件)
   - [通过prop向子组件传递数据](#通过prop向子组件传递数据)
+  - [监听子组件事件](#监听子组件事件)
 
 <!-- /TOC -->
 
@@ -240,12 +241,14 @@ let watchExample = new Vue({
 2. 值可以是对象值
 3. 值可以是 `computed` 属性中的函数
 
-# 组件基础
+
+# 组件
 
 1. 组件是一个可复用的 `Vue` 实例，因此可以接收 `new Vue` 相同的选项，除 el
 2. 作为 **自定义元素** 在通过 `new Vue` 创建的根实例中使用。
 
-**Demo**
+## 基础示例
+
 1. 定义组件
 ```js
 // 定义一个名为 button-counter 的新组件
@@ -275,10 +278,108 @@ new Vue({ el: '#components-demo' })
 
 ## 通过prop向子组件传递数据
 
-1. title
+1. 传递单属性值
 ```js
 Vue.component('blog-post', {
   props: ['title'],
   template: '<h3>{{ title }}</h3>'
 })
 ```
+```html
+<blog-post title="My journey with Vue"></blog-post>
+
+<!-- 或是 -->
+<blog-post
+  v-for="post in posts"
+  v-bind:key="post.id"
+  v-bind:title="post.title"
+></blog-post>
+```
+
+2. 模板中的子组件只能由一个根元素
+
+```html
+<div class="blog-post">
+  <h3>{{ title }}</h3>
+  <div v-html="content"></div>
+</div>
+```
+
+3. 传递对象值
+```html
+<blog-post
+  v-for="post in posts"
+  v-bind:key="post.id"
+  v-bind:post="post"
+></blog-post>
+```
+```js
+Vue.component('blog-post', {
+  props: ['post'],
+  template: `
+    <div class="blog-post">
+      <h3>{{ post.title }}</h3>
+      <div v-html="post.content"></div>
+    </div>
+  `
+})
+```
+
+## 监听子组件事件
+
+```html
+<template>
+    <div id="app">
+        <div :style="{ fontSize: postFontSize + 'em' }">
+            <blog-post
+                    v-for="post in posts"
+                    v-bind:key="post.id"
+                    v-bind:post="post"
+                    v-on:enlarge-text="postFontSize += 0.1"
+            ></blog-post>
+        </div>
+    </div>
+</template>
+
+<script>
+    import BlogPost from "@/components/BlogPostsEventDemo";
+
+    export default {
+        name: 'App',
+        data: function () {
+            return {
+                posts: [
+                    {id: 0, title: "Title1"},
+                    {id: 1, title: "Title2"}
+                ],
+                postFontSize: 1
+            }
+        },
+        components: {
+            BlogPost
+        }
+    }
+</script>
+```
+
+**BlogPostsEventDemo.vue**
+```html
+<template>
+    <div class="blog-post">
+        <h3>{{post.title}}</h3>
+        <button v-on:click="$emit('enlarge-text')">Enlarge Text</button>
+    </div>
+</template>
+
+<script>
+    export default {
+        name: "blog-post",
+        props: ['post']
+    }
+</script>
+```
+
+* 使用 `$emit('enlarge-text')` 触发指定名称的事件
+* 父组件监听 `enlarge-text` 事件
+* `v-bind: key` 
+Vue会尽最大努力复用组件，因此对于一些不想要被 `Vue` 复用的组件，可以使用 `key` 以声明此组件时独一无二的
