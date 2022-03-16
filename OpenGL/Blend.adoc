@@ -1,0 +1,18 @@
+= Blend
+
+半透明物体和不透明物体的渲染有着重要的顺序问题。由于深度测试的原因：
+
+. 如果先渲染半透明片段，会因为__深度测试__不通过而导致混合**失败**
+. 如果先渲染隔得更近的半透明片段，再渲染隔得远的半透明片段，会遇到相同的问题
+
+== 解决方案
+
+=== 排序
+
+. 先渲染完全不透明的物体
+. 对半透明的物体从远到进排序，并首秀按渲染更远的物体
+
+=== 次序无关
+
+* link:++https://en.wikipedia.org/wiki/Order-independent_transparency#:~:text=Order-independent%20transparency%20%28OIT%29%20is%20a%20class%20of%20techniques,geometry%20in%20sorted%20order%20for%20alpha%20compositing%20.++[Order-independent transparency]
+** https://en.wikipedia.org/wiki/Depth_peeling[Depth peeling]

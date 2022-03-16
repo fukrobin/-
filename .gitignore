@@ -1,1 +1,10 @@
-注册信息.md
+# idea
+.idea/
+*.iml
+
+#gradle
+.gradle/
+build/
+
+#log4j2
+logs/

@@ -1,0 +1,143 @@
+= 坐标系统
+
+OpenGL 是右手坐标系（Z 轴正方向朝屏幕向外）
+DirectX 是左手坐标系（Z 轴正方向朝屏幕向里）
+
+* <<vertextShader>> 运行后 -> 标准化设备坐标(Normalized Device Coordinate, NDC)
+** OpenGL 在 NDC 中使用的是“左手坐标系”
+** 每个顶点的x，y，z坐标都应该在-1.0到1.0之间，超出这个坐标范围的顶点都将不可见
+
+几个重要的坐标系统:
+
+* 局部空间(Local Space，或者称为物体空间(Object Space))
+* 世界空间(World Space)
+* 观察空间(View Space，或者称为视觉空间(Eye Space))
+* 裁剪空间(Clip Space)
+* 屏幕空间(Screen Space)
+
+[%hardbreaks]
+. 局部坐标是对象相对于局部原点的坐标，也是物体起始的坐标。
+. 下一步是将局部坐标变换为世界空间坐标，世界空间坐标是处于一个更大的空间范围的。这些坐标相对于世界的全局原点，它们会和其它物体一起相对于世界的原点进行摆放。
+. 接下来我们将世界坐标变换为观察空间坐标，使得每个坐标都是从摄像机或者说观察者的角度进行观察的。
+. 坐标到达观察空间之后，我们需要将其投影到裁剪坐标。裁剪坐标会被处理至-1.0到1.0的范围内，并判断哪些顶点将会出现在屏幕上。
+. 最后，我们将裁剪坐标变换为屏幕坐标，我们将使用一个叫做视口变换(Viewport Transform)的过程。视口变换将位于-1.0到1.0范围的坐标变换到由glViewport函数所定义的坐标范围内。最后变换出来的坐标将会送到光栅器，将其转化为片段。
+
+== 变换
+
+矩阵的应用是反着来的，如果我们先“旋转”，再“位移”，实际的效果是先“位移”，再“旋转”，因此位移会受到旋转的影响（旋转中心不再是自身中点）.
+
+建议顺序 缩放-> 旋转 -> 位移
+
+=== 旋转
+
+[source,java]
+----
+Matrix4f modelMatrix = new Matrix4f();
+modelMatrix.rotate(Math.toRadians(20.0f), new Vector3f(1.0f, 0.3f, 0.5f).normalize());
+----
+NOTE: 旋转操作中，需要将旋转轴先进行 `normalize` 单位化
+
+[stem]
+.沿X轴旋转
+++++
+[[1,0,0,0],[0,cos theta,-sin theta,0],[0,sin theta,cos theta,0],[0,0,0,1]].((x),(y),(z),(1)) =((x),(cos theta⋅y−sin theta⋅z),(sin theta⋅y+cos theta⋅z),(1))
+++++
+[stem]
+.沿Y轴旋转
+++++
+[
+  [cos theta,0,sin theta,0],
+  [0,1,0,0],
+  [-sin theta,0,cos theta,0],
+  [0,0,0,1]
+]
+.((x),(y),(z),(1))=
+(
+  (cos theta.x+sin theta.z),
+  (y),
+  (-sin theta.x + cos theta.z),
+  (1)
+)
+++++
+[stem]
+.沿Z轴旋转
+++++
+[
+  [cos theta,-sin theta,0,0],
+  [sin theta,cos theta,0,0],
+  [0,0,1,0],
+  [0,0,0,1]
+]
+.((x),(y),(z),(1))=
+(
+  (cos theta.x-sin theta.y),
+  (sin theta.x + cos theta.y),
+  (z),
+  (1)
+)
+++++
+[stem]
+.沿任意轴旋转
+++++
+[
+  [
+    cos theta+R_x^2(1-cos theta),
+    R_xR_y(1-cos theta)-R_z sin theta,
+    R_xR_z(1-cos theta)+R_y sin theta,
+    0
+  ],
+  [
+    R_yR_x(1-cos theta)+R_z sin theta,
+    cos theta+R_y^2(1-cos theta),
+    R_yR_z(1-cos theta)-R_x sin theta,
+    0
+  ],
+  [
+    R_zR_x(1-cos theta)-R_y sin theta,
+    R_zR_y(1-cos theta)+R_x sin theta,
+    cos theta+R_z^2(1-cos theta),
+    0
+  ],
+  [0,0,0,1]
+]
+++++
+
+=== 位移
+
+如果位移向量表示为 stem:[(color(red)(T_x),color(green)(T_y),color(blue)(T_z))], 就可以吧矩阵定义为：
+
+[stem]
+++++
+[
+  [color(red)(1),color(red)(0),color(red)(0),color(red)(T_x)],
+  [color(green)(0),color(green)(1),color(green)(0),color(green)(T_y)],
+  [color(blue)(0),color(blue)(0),color(blue)(1),color(blue)(T_z)],
+  [0,0,0,1]
+].
+((x),(y),(z),(1))=
+((x+color(red)(T_x)),(y+color(green)(T_y)),(z+color(blue)(T_z)),(1))
+++++
+
+.齐次坐标(Homogeneous Coordinates)
+****
+
+向量的w分量也叫齐次坐标。想要从齐次向量得到3D向量，我们可以把x、y和z坐标分别除以w坐标。我们通常不会注意这个问题，因为w分量通常是1.0。使用齐次坐标有几点好处：它允许我们在3D向量上进行位移（如果没有w分量我们是不能位移向量的），而且下一章我们会用w值创建3D视觉效果。
+
+如果一个向量的齐次坐标是0，这个坐标就是方向向量(Direction Vector)，因为w坐标是0，这个向量就不能位移（不能位移一个方向）
+****
+
+=== 缩放
+
+* 缩放为负值时会导致物体翻转
+
+[stem]
+++++
+[
+[color(red)(S_1),0,0,0],
+[0,color(green)(S_2),0,0],
+[0,0,color(blue)(S_3),0],
+[0,0,0,1]
+].
+((x),(y),(z),(1))=
+((color(red)(S_1).x),(color(green)(S_2).y),(color(blue)(S_3).z),(1))
+++++

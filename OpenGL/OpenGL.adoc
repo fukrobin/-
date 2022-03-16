@@ -1,0 +1,20 @@
+= OpenGL
+:toc: left
+:icons: font
+:doctype: article
+:toc-title: Table of Contents
+:toclevels: 4
+:sectnums:
+:sectnumlevels: 2
+:sectanchors:
+:sectlinks:
+:partnums:
+:stem:
+
+include::Shader.adoc[leveloffset=1]
+include::Coordinates.adoc[leveloffset=1]
+include::Camera.adoc[leveloffset=1]
+include::DepthTest.adoc[leveloffset=1]
+include::StencilTest.adoc[leveloffset=1]
+include::Blend.adoc[leveloffset=1]
+include::CullFace.adoc[leveloffset=1]

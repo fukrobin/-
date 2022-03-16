@@ -1,0 +1,152 @@
+= StencilTest
+
+* 在**片段着色器**之后运行，同__深度测试__一样，也可能丢弃片段。
+* 被保留的片段会进入__深度测试__
+* 模板测试使用的缓冲被称为``“模板缓冲（Stencil Buffer）”``
+* 模板值为8bit，因此可以有256种不同的模板值
+
+[NOTE]
+====
+每个窗口库都需要配置模板缓冲，`GLFW` 自动做了这件事
+====
+
+模板测试的基本原理::
+当模板值为某一个值时，如 1，测试通过，保留片段，在模板值不为1时，丢弃片段。
+
+== 启用
+
+[source, c++]
+----
+glEnable(GL_STENCIL_TEST);
+glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+glStencilMask(0xFF); // 每一位写入模板缓冲时都保持原样  <1>
+glStencilMask(0x00); // 每一位在写入模板缓冲时都会变成0（禁用写入）
+----
+<1> 掩码为8bit，模板值也为8位，这意味着可以用作更加复杂的模板测试逻辑，如：屏蔽最低3位的写入
+
+== 模板函数
+
+[source,java]
+----
+glStencilFunc(GLenum func,  // <1>
+              GLint ref,    // <2>
+              GLuint mask)  // <3>
+----
+<1> 设置模板测试函数(Stencil Test Function)。这个测试函数将会应用到已储存的模板值上和 `glStencilFunc` 函数的 ref 值上。可用的选项有：`GL_NEVER`、`GL_LESS`、`GL_LEQUAL`、`GL_GREATER`、`GL_GEQUAL`、`GL_EQUAL`、`GL_NOTEQUAL` 和 `GL_ALWAYS`。它们的语义和深度缓冲的函数类似。
+<2> 设置了模板测试的参考值(Reference Value)。模板缓冲的内容将会与这个值进行比较。
+<3> 设置一个掩码，它将会与参考值和储存的模板值在测试比较它们之前进行与(AND)运算。初始情况下所有位都为1。
+
+
+[source,java]
+----
+glStencilOp(GLenum sfail,   // <1>
+            GLenum dpfail,  // <2>
+            GLenum dppass)  // <3>
+----
+<1> 模板测试失败时采取的行为。
+<2> 模板测试通过，但深度测试失败时采取的行为。
+<3> 模板测试和深度测试都通过时采取的行为。
+
+.Stencil action
+[cols=2*,stripes=even]
+|===
+|行为	|描述
+
+|GL_KEEP
+|保持当前储存的模板值
+
+|GL_ZERO
+|将模板值设置为0
+
+|GL_REPLACE
+|将模板值设置为glStencilFunc函数设置的ref值
+
+|GL_INCR
+|如果模板值小于最大值则将模板值加1
+
+|GL_INCR_WRAP
+|与GL_INCR一样，但如果模板值超过了最大值则归零
+
+|GL_DECR
+|如果模板值大于最小值则将模板值减1
+
+|GL_DECR_WRAP
+|与GL_DECR一样，但如果模板值小于0则将其设置为最大值
+
+|GL_INVERT
+|按位翻转当前的模板缓冲值
+|===
+
+默认行为：
+[source,java]
+----
+glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP)
+----
+所以不论任何测试的结果是如何，模板缓冲都会保留它的值。默认的行为不会更新模板缓冲，所以如果你想写入模板缓冲的话，你需要至少对其中一个选项设置不同的值。
+
+== 物体轮廓
+
+=== 缩放实现
+
+. 将物体的所有片段模板值都设置为1
+. 禁用模板写入和深度测试
+. 将每个物体放大一点点
+. 使用单独的片段着色器，输出一个边框颜色
+. 再次绘制物体，但只有当模板值**不为1**时才绘制
+. 再次启用模板写入和深度测试
+
+[source,c++]
+----
+glEnable(GL_DEPTH_TEST);
+glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+
+glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
+glStencilMask(0x00); // 记得保证我们在绘制地板的时候不会更新模板缓冲
+normalShader.use();
+DrawFloor()
+
+glStencilFunc(GL_ALWAYS, 1, 0xFF);
+glStencilMask(0xFF);
+DrawTwoContainers();
+
+glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
+glStencilMask(0x00);
+glDisable(GL_DEPTH_TEST);
+shaderSingleColor.use();
+DrawTwoScaledUpContainers();
+glStencilMask(0xFF);
+glEnable(GL_DEPTH_TEST);
+----
+
+=== 利用 glPolygonMode 实现
+
+参考：link:++https://community.khronos.org/t/outline-of-an-object/37339/2++[Outline of an object].
+
+[source,c++]
+----
+glEnable(GL_DEPTH_TEST);
+glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+
+glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
+glStencilMask(0x00); // 记得保证我们在绘制地板的时候不会更新模板缓冲
+glPolygonMode(GL_FRONT, GL_FILL);
+normalShader.use();
+DrawFloor()
+
+glStencilFunc(GL_ALWAYS, 1, 0xFF);
+glStencilMask(0xFF);
+DrawTwoContainers();
+
+glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
+glStencilMask(0x00);
+glDisable(GL_DEPTH_TEST);
+glPolygonMode(GL_FRONT, GL_LINE);
+glLineWidth(10);
+shaderSingleColor.use();
+DrawTwoScaledUpContainers();
+glStencilMask(0xFF);
+glEnable(GL_DEPTH_TEST);
+glPolygonMode(GL_FRONT, GL_FILL);
+----

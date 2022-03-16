@@ -1,0 +1,36 @@
+= 着色器
+
+[#vertextShader]
+== 顶点着色器
+顶点着色器
+
+== Uniforms
+
+=== `glUniform`
+
+==== glUniformMatrix4fv
+
+[source]
+.定义
+----
+void glUniformMatrix4fv(GLint location,         <1>
+                        GLsizei count,          <2>
+                        GLboolean transpose,    <3>
+                        const GLfloat *value);  <4>
+----
+
+<1> _location_: Specifies the location of the uniform variable to be modified.
+<2> count:
+* For the vector (`glUniform*v`) commands, specifies the number of elements that are to be modified.
+This should be 1 if the targeted uniform variable is not an array, and 1 or more if it is an array.
+* For the matrix (`glUniformMatrix*`) commands, specifies the number of matrices that are to be modified.
+This should be 1 if the targeted uniform variable is not an array of matrices, and 1 or more if it is an array of matrices.
+<3> transpose: 是否希望对矩阵进行置换(Transpose)，也就是说交换矩阵的行和列
+<4> 真正的 Matrix 值
+
+[source,c++]
+.Example
+----
+unsigned int transformLoc = glGetUniformLocation(ourShader.ID, "transform");
+glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(trans));
+----
