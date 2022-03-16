@@ -5,7 +5,7 @@
 :toc-title: Table of Contents
 :toclevels: 4
 :sectnums:
-:sectnumlevels: 2
+:sectnumlevels: 3
 :sectanchors:
 :sectlinks:
 :partnums:

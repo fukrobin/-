@@ -22,10 +22,7 @@ tasks.named<AsciidoctorTask>("asciidoctor") {
     baseDirFollowsSourceDir()
     baseDirFollowsSourceFile()
 
-    sourceDir(file("OpenGL"))
-    sources(delegateClosureOf<PatternSet> {
-        include("OpenGL.adoc")
-    })
+    sourceDir(file("."))
     setOutputDir(file("build/html"))
 }
 

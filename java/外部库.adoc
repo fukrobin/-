@@ -1,15 +1,21 @@
-# Apache
+= Apache
+:doctype: book
 
-## log4j  XML文件配置
+== log4j  XML文件配置
 
-### Appenders
+=== Appender
 
-> https://logging.apache.org/log4j/2.x/manual/appenders.html
+____
+https://logging.apache.org/log4j/2.x/manual/appenders.html
+____
 
 定义日志输出目的地
 
 例子：
-```xml
+
+[source,xml]
+.log4j.xml
+----
 <File name="log" fileName="log/test.log" append="false">
      <PatternLayout pattern="%d{HH:mm:ss.SSS} %-5level %class{36} %L %M - %msg%xEx%n"/>
 </File>
@@ -24,66 +30,60 @@
         <AppenderRef ref="File"/>
     </Root>
 </Loggers>
-```
+----
 
-* AppenderRef ref 属性需要匹配 Appenders中的Appender的`name`属性
+* AppenderRef ref 属性需要匹配 Appenders中的Appender的``name``属性
 
-#### RollingRandomAcessFile
+==== RollingRandomAcessFile
 
-与`RollingFileAppender`相似，除了`RollingRandomAcessFile`总是被缓存（无法关闭），比`RollingFileAppender`性能高出大约20-200%
+与``RollingFileAppender``相似，除了``RollingRandomAcessFile``总是被缓存（无法关闭），比``RollingFileAppender``性能高出大约20-200%
 
 * DefaultRolloverStrategy: max 最大文件数量
 * Policies
-  * SizeBasedTriggeringPolicy 单个文件最大大小 <size="20 MB">
-  * OnStartupTriggeringPolicy 每次JVM重启时进行文件翻转
-  * TimeBasedTriggeringPolicy 基于时间进行翻转
-    * `interval` 时间间隔，单位是`Pattern`中配置的最小时间单位
-    * `modulate` 为true时，让第一次翻转发生在区间边界上，即使并没有达到interval的时间  
-```xml
-<RollingRandomAccessFile name="File" fileName="logs/latest.log" filePattern="logs/%d{yyyy-MM-dd}-%i.log.gz">
-            <PatternLayout pattern="[%d{HH:mm:ss}] [%t/%level]: %msg%n"/>
-            <Policies>
-                <SizeBasedTriggeringPolicy size="20 MB" />
-                <TimeBasedTriggeringPolicy />
-                <OnStartupTriggeringPolicy />
-            </Policies>
-            // 最多保存20个文件多余的删除
-            <DefaultRolloverStrategy max="20" />
-</RollingRandomAccessFile>
-```
-### properites
+** SizeBasedTriggeringPolicy 单个文件最大大小 <size="20 MB">
+** OnStartupTriggeringPolicy 每次JVM重启时进行文件翻转
+** TimeBasedTriggeringPolicy 基于时间进行翻转
+*** `interval` 时间间隔，单位是``Pattern``中配置的最小时间单位
+*** `modulate` 为true时，让第一次翻转发生在区间边界上，即使并没有达到interval的时间 + ```xml+++<RollingRandomAccessFile name="File" fileName="logs/latest.log" filePattern="logs/%d{yyyy-MM-dd}-%i.log.gz">++++++<PatternLayout pattern="[%d{HH:mm:ss}] [%t/%level]: %msg%n">++++++</PatternLayout>+++ +++<Policies>++++++<SizeBasedTriggeringPolicy size="20 MB">++++++</SizeBasedTriggeringPolicy>+++ +++<TimeBasedTriggeringPolicy>++++++</TimeBasedTriggeringPolicy>+++ +++<OnStartupTriggeringPolicy>++++++</OnStartupTriggeringPolicy>++++++</Policies>+++ // 最多保存20个文件多余的删除 +++<DefaultRolloverStrategy max="20">++++++</DefaultRolloverStrategy>++++++</RollingRandomAccessFile>+++
 
-```xml
+=== properites
+
+[source,xml]
+----
 <properties>
-  <property name="htmlLog">
-      log.html
-  </property>
+    <property name="htmlLog">
+        log.html
+    </property>
 </properties>
-```
+----
+
 引用：$[htmlLog] 即可引用值 log.html
 
-### 布局
+=== 布局
 
 HTML布局
-```xml
+
+[source,xml]
+----
 <File name="errorLog" fileName="log/${htmlLog}" append="false">
   <HTMLLayout title="日志"/>
 </File>
-```
+----
+
 日志将会输出为html文件，以table布局:
-![Annotation 2020-05-03 003606](image/Annotation 2020-05-03 003606.png)
 
-## STB
+image:image/Annotation 2020-05-03 003606.png[Annotation 2020-05-03 003606]
 
-```c++
+== STB
+
+[source,c++]
+----
 STBTT_DEF void stbtt_GetCodepointHMetrics(const stbtt_fontinfo *info, int codepoint, int *advanceWidth, int *leftSideBearing);
 // leftSideBearing is the offset from the current horizontal position to the left edge of the character
 // advanceWidth is the offset from the current horizontal position to the next horizontal position these are expressed in unscaled coordinates
-```
+----
 
-
-
-## JUnit 4.11
+== JUnit 4.11
 
 单元测试新方法
 
@@ -91,8 +91,8 @@ STBTT_DEF void stbtt_GetCodepointHMetrics(const stbtt_fontinfo *info, int codepo
 * beforeClass()
 * afterClass()
 
-
-```java
+[source,java]
+----
 @Test public void name() {
     System.out.println("Hello JUnit!");
 }
@@ -108,37 +108,36 @@ STBTT_DEF void stbtt_GetCodepointHMetrics(const stbtt_fontinfo *info, int codepo
 @AfterClass public static void afterClass() throws Exception {
     System.out.println("Example.afterClass");
 }
+----
 
 输出：
 Example.beforeClass
 Example.setUp
 Hello JUnit!
 Example.afterClass
-```
 
-# Junit5
+== Junit5
 
 junit5和junit4及其之前差别很大，无论是使用方式，还是便捷性、功能性。
 
-**JUnit 5 = *JUnit Platform* + *JUnit Jupiter* + *JUnit Vintage* **
+JUnit 5 = JUnit Platform + JUnit Jupiter + JUnit Vintage
 
-**JUnit Platform**: Junit Platform是在JVM上启动测试框架的基础，不仅支持Junit自制的测试引擎，其他测试引擎也都可以接入。
+JUnit Platform:: Junit Platform是在JVM上启动测试框架的基础，不仅支持Junit自制的测试引擎，其他测试引擎也都可以接入。
 
-**JUnit Jupiter**: JUnit Jupiter提供了JUnit5的新的编程模型，是JUnit5新特性的核心。内部 包含了一个测试引擎，用于在Junit Platform上运行。
+JUnit Jupiter:: JUnit Jupiter提供了JUnit5的新的编程模型，是JUnit5新特性的核心。内部 包含了一个测试引擎，用于在Junit Platform上运行。
 
-**JUnit Vintage**: 由于JUint已经发展多年，为了照顾老的项目，JUnit Vintage提供了兼容JUnit4.x,Junit3.x的测试引擎。
+JUnit Vintage:: 由于JUint已经发展多年，为了照顾老的项目，JUnit Vintage提供了兼容JUnit4.x,Junit3.x的测试引擎。
 
 通过上述的介绍，不知道有没有发现JUint5似乎已经不再满足于安安静静做一个单元测试框架了，它的野心很大，想通过接入不同测试引擎，来支持各类测试框架的使用，成为一个单元测试的平台。因此它也采用了分层的架构，分成了平台层，引擎层，框架层。下图可以很清晰的体现出来:
 
-<img src="image/junit5架构.jpg" alt="junit5架构" style="zoom:80%;" />
-
-
+image::image/junit5架构.jpg[junit5架构]
 
 只要实现了JUnit的测试引擎接口，任何测试框架都可以在JUnit Platform上运行，这代表着JUnit5将会有着很强的拓展性。
 
-## Junit5 Demo
+=== Junit5 Demo
 
-```java
+[source,java]
+----
 public class Junit5Test {
     @Test
     @DisplayName("运行一组断言")
@@ -198,18 +197,18 @@ public class Junit5Test {
         assertEquals(1, 2);
     }
 }
-```
+----
 
-<img src="image/junit5TestResult.png" style="zoom:80%;" />
+image::image/junit5TestResult.png[]
 
-![testReportExport](image/testReportExport.png)
+image::image/testReportExport.png[testReportExport]
 
 在IDEA中可以直接导出测试报告，可以选择HTML、XML两种，一般都选HTML，看起来更方便、直观
 
 * @Test
 * @DisplayName：这东西主要用于到处测试报告时用
 
-![image-20200705123131071](image/htmlTestReportDemo.png)
+image::image/htmlTestReportDemo.png[image-20200705123131071]
 
 * 报告中显示的名称就是DisplayName
 * @ParameterizedTest、@ValueSource：参数化测试，可以在不重新运行的情况下输入多个值
@@ -218,6 +217,6 @@ public class Junit5Test {
 
 相关网站：
 
-* [Junit5官方使用手册](https://junit.org/junit5/docs/current/user-guide/#overview)
-* [知乎Junit5基本介绍](https://zhuanlan.zhihu.com/p/111706639)
-* [CSDNjunit5系列使用教程](https://blog.csdn.net/ryo1060732496/article/details/80792246)
+* https://junit.org/junit5/docs/current/user-guide/#overview[Junit5官方使用手册]
+* https://zhuanlan.zhihu.com/p/111706639[知乎Junit5基本介绍]
+* https://blog.csdn.net/ryo1060732496/article/details/80792246[CSDNjunit5系列使用教程]

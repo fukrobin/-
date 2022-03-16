@@ -1,8 +1,9 @@
-# 单例模式
+= 单例模式
 
-## 饱汉模式(懒汉模式)
+== 饱汉模式(懒汉模式)
 
-```java
+[source,java]
+----
 public class Singleton1 {
    private static Singleton1 singleton = null;
    private Singleton1() {
@@ -14,14 +15,15 @@ public class Singleton1 {
      return singleton;
 	}
 }
-```
+----
 
 * 优点：懒加载启动快，资源占用小，使用时才实例化，无锁。
 * 缺点：非线程安全。
 
-## 饱汉模式(懒汉模式)--线程安全
+== 饱汉模式(懒汉模式)--线程安全
 
-```java
+[source,java]
+----
 public class Singleton {
 	private static Singleton uniqueInstance = null;
 
@@ -34,17 +36,15 @@ public class Singleton {
     	}
     	return uniqueInstance;
 }
-```
+----
 
 * 优点：同上，但加锁了。
-
 * 缺点：synchronized 为独占排他锁，并发性能差。即使在创建成功以后，获取实例仍然是串行化操作。
 
+== 饱汉模式(懒汉模式)--双重加锁检查DCL（Double Check Lock）
 
-
-## 饱汉模式(懒汉模式)--双重加锁检查DCL（Double Check Lock）
-
-```java
+[source,java]
+----
 public class Singleton {
     private volatile static Singleton instance = null;
 
@@ -63,15 +63,15 @@ public class Singleton {
         return instance;
     }
 }
-```
+----
 
 * 优点：懒加载，线程安全。
-
 * 注：实例必须有 volatile 关键字修饰，其保证初始化完全。
 
-## 饿汉模式
+== 饿汉模式
 
-```java
+[source,java]
+----
 public class Singleton {
     private static Singleton instance = new Singleton();
     private Singleton(){
@@ -81,15 +81,15 @@ public class Singleton {
         return instance;
     }
 }
-```
+----
 
 * 优点：饿汉模式天生是线程安全的，使用时没有延迟。
-
 * 缺点：启动时即创建实例，启动慢，有可能造成资源浪费。
 
-## Holder模式
+== Holder模式
 
-```java
+[source,java]
+----
 public class Singleton {
     /**
      * 类级的内部类，也就是静态的成员式内部类，该内部类的实例与外部类的实例
@@ -105,26 +105,17 @@ public class Singleton {
         return SingletonHolder.instance;
     }
 }
-```
+----
 
-*  优点：将懒加载和线程安全完美结合的一种方式（无锁）。
+* 优点：将懒加载和线程安全完美结合的一种方式（无锁）。
 
-## 总结
+== 总结
 
-备注：
-
-1. 全局共享，独一份；
-
-2. 构造函数不暴露（如果暴露便不能保证一份），自己负责自己的构造；
-
-3. 懒汉式：Lazy load，用到才加载，非线程安全。如何保证线程安全呢：
-
-   （1） synchronized getInstance()。
-
-   （2）双重检查加锁（volatile）。
-
-4. 饿汉式：一开始就申请好，浪费了点资源，但其线程安全。
-
-5. Holder模式：
-
-   （1）改成内部类，由JVM保证线程安全性。
+. 全局共享，独一份；
+. 构造函数不暴露（如果暴露便不能保证一份），自己负责自己的构造；
+. 懒汉式：Lazy load，用到才加载，非线程安全。如何保证线程安全呢：
+.. synchronized getInstance()。
+.. 双重检查加锁（volatile）。
+. 饿汉式：一开始就申请好，浪费了点资源，但其线程安全。
+. Holder模式：
+.. 改成内部类，由JVM保证线程安全性。
